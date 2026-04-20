@@ -140,6 +140,15 @@
     .pc-because strong { font-weight: 700; color: var(--navy-70); letter-spacing: 0.10em; font-size: 10px; text-transform: uppercase; margin-right: 8px; font-variant-numeric: normal; }
     .patterns-empty { background: var(--navy-04); border: 1px dashed var(--navy-12); border-radius: var(--radius-xl); padding: 48px 36px; text-align: center; color: var(--navy-70); font-size: 14.5px; line-height: 1.7; max-width: 680px; margin: 0 auto; }
     @media(max-width:600px) { .pattern-card { padding: 28px 22px 24px; min-height: 200px; } .patterns-empty { padding: 36px 22px; } }
+
+    /* ── v2 forward preparation ───────────────────────────────────── */
+    .forward-prep { margin-top: 44px; margin-bottom: 48px; padding: 48px; border-radius: var(--radius-xl); border: 1px solid var(--navy-08); background: radial-gradient(ellipse at 75% 35%, rgba(55, 71, 93, 0.08), rgba(255, 255, 255, 0) 60%), var(--white); display: flex; align-items: center; gap: 36px; justify-content: space-between; }
+    .forward-prep-body { flex: 1 1 auto; min-width: 0; }
+    .forward-prep-eyebrow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600; color: var(--navy-50); margin-bottom: 14px; }
+    .forward-prep-text { font-size: clamp(20px, 2.2vw, 24px); font-weight: 500; color: var(--navy); line-height: 1.45; letter-spacing: -0.005em; }
+    .forward-prep-horizon { flex: 0 0 auto; width: 110px; height: auto; display: block; }
+    @media(max-width:640px) { .forward-prep { padding: 32px 26px; flex-direction: column; align-items: flex-start; gap: 22px; } .forward-prep-horizon { width: 88px; align-self: flex-end; } }
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: smooth; }
     body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--page-bg); color: var(--navy); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -602,6 +611,7 @@
       }
 
       h+=renderPatternObservationsSection(intel,'Patterns we\'re tracking');
+      h+=renderForwardPreparationSection(intel);
 
       if(intel&&intel.account_phase_note&&metrics&&metrics.wh>0){
         h+='<div class="momentum-card" style="margin-top:12px"><div class="momentum-text"><div class="momentum-headline">'+esc(intel.account_phase_note)+'</div>';
@@ -1006,6 +1016,29 @@
         h+='</article>';
       });
       h+='</div></section>';
+      return h;
+    }
+
+    function renderForwardPreparationSection(intel){
+      if(!intel)return '';
+      var fp=intel.forward_preparation;
+      if(fp==null)return '';
+      var text=String(fp).trim();
+      if(!text)return '';
+      var horizon='<svg class="forward-prep-horizon" viewBox="0 0 120 80" fill="none" aria-hidden="true">'
+        +'<line x1="0" y1="20" x2="120" y2="20" stroke="#37475D" stroke-width="1" opacity="0.15"/>'
+        +'<line x1="0" y1="38" x2="120" y2="38" stroke="#37475D" stroke-width="1" opacity="0.35"/>'
+        +'<line x1="0" y1="56" x2="120" y2="56" stroke="#37475D" stroke-width="1.5" opacity="0.8"/>'
+        +'<circle cx="80" cy="56" r="4" fill="#ff6b6b"/>'
+        +'<line x1="0" y1="74" x2="120" y2="74" stroke="#37475D" stroke-width="1" opacity="0.35"/>'
+        +'</svg>';
+      var h='<section class="forward-prep">';
+      h+='<div class="forward-prep-body">';
+      h+='<div class="forward-prep-eyebrow">Coming into view</div>';
+      h+='<div class="forward-prep-text">'+esc(text)+'</div>';
+      h+='</div>';
+      h+=horizon;
+      h+='</section>';
       return h;
     }
 
