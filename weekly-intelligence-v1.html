@@ -88,6 +88,23 @@
     .hero-observation { font-size: 19px; font-weight: 400; line-height: 1.55; color: var(--navy); max-width: 740px; border-left: 2px solid var(--coral); padding-left: 20px; }
     @media(max-width:760px) { .hero-v2 { padding: 60px 32px 56px; } .hero-v2::before { width: 380px; height: 380px; right: -180px; top: -140px; } .hero-headline { margin-bottom: 28px; } }
     @media(max-width:600px) { .hero-v2 { padding: 44px 22px 40px; } .hero-sub { font-size: 14px; margin-bottom: 24px; } .hero-observation { font-size: 16px; padding-left: 14px; } }
+
+    /* ── v2 metric cards ──────────────────────────────────────────── */
+    .metric-card-v2 { position: relative; background: var(--white); border: 1px solid var(--navy-08); border-radius: var(--radius-lg); padding: 22px 22px 20px; overflow: hidden; isolation: isolate; transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease; }
+    .metric-card-v2:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(55, 71, 93, 0.08); }
+    .metric-card-v2.is-hero { padding: 32px 30px 28px; }
+    .metric-card-v2.is-notable { border-color: rgba(255, 107, 107, 0.22); box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.10), 0 14px 36px rgba(255, 107, 107, 0.10); }
+    .metric-card-v2.is-notable:hover { box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.18), 0 18px 44px rgba(255, 107, 107, 0.18); }
+    .mc-label { display: block; margin-bottom: 14px; color: var(--navy-50); }
+    .mc-value { display: block; margin-bottom: 10px; position: relative; z-index: 1; }
+    .metric-card-v2.is-notable .mc-value { text-shadow: 0 0 40px rgba(255, 107, 107, 0.22); }
+    .mc-compare { font-size: 12.5px; font-weight: 600; color: var(--navy-70); font-variant-numeric: tabular-nums; letter-spacing: 0.005em; position: relative; z-index: 1; }
+    .mc-compare.is-up { color: var(--coral); }
+    .mc-compare.is-down { color: var(--navy); }
+    .mc-compare.is-flat { color: var(--navy-50); }
+    .mc-spark { position: absolute; left: 0; right: 0; bottom: 0; height: 54px; opacity: 0.9; pointer-events: none; z-index: 0; }
+    .metric-card-v2.is-hero .mc-spark { height: 78px; }
+    .mc-footer { font-size: 10px; font-weight: 500; color: var(--navy-50); margin-top: 12px; letter-spacing: 0.02em; position: relative; z-index: 1; }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: smooth; }
     body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--page-bg); color: var(--navy); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -732,14 +749,65 @@
 
     function mCard(label,value,median,lowerBetter,display,trend,weeks,featured,percentile,tintClass){
       var ch=median>0?((value-median)/median)*100:0;
-      var cls='flat',arr='→',benchText='No baseline yet';
-      if(median>0&&Math.abs(ch)>1){var good=lowerBetter?ch<0:ch>0;cls=good?(lowerBetter?'good-down':'up'):'down';arr=ch>0?'↑':'↓';var pct=Math.abs(Math.round(ch));benchText='<strong>'+arr+' '+pct+'%</strong> vs your '+(weeks>=4?'4-week':'recent')+' average';}else if(median>0){benchText='On track with your average';}
-      var benchHtml='<div class="m-benchmark"><div class="m-benchmark-arrow '+cls+'">'+arr+'</div><div class="m-benchmark-text '+cls+'">'+benchText+'</div></div>';
-      var percHtml=percentile?'<div style="font-size:10px;color:var(--coral);font-weight:600;margin-bottom:10px">'+esc(percentile)+' of your historical range</div>':'';
-      var trendHtml='';
-      if(trend&&trend.length>1){trendHtml='<div class="m-trend-wrap"><div class="m-trend-label">4-week trend</div><div class="m-trend">';trend.forEach(function(v,i){trendHtml+='<span class="m-trend-val">'+v+'</span>';if(i<trend.length-1)trendHtml+='<span style="color:var(--stone);margin:0 2px;font-size:9px">›</span>';});trendHtml+='</div></div>';}
-      var footerHtml='<div class="m-footer">Based on '+weeks+' week'+(weeks!==1?'s':'')+' of your data</div>';
-      return '<div class="metric-card '+(tintClass||'')+'"><div class="m-label">'+label+'</div><div class="m-value">'+display+'</div>'+benchHtml+percHtml+trendHtml+footerHtml+'</div>';
+      var absCh=Math.abs(ch);
+      var meaningful=median>0&&absCh>1;
+      var good=meaningful&&(lowerBetter?ch<0:ch>0);
+      var bad =meaningful&&!good;
+      // Notable thresholds per §5.5 — >=25% improvement or >=15% decline
+      var notable=(good&&absCh>=25)||(bad&&absCh>=15);
+      var compareTxt,compareCls='is-flat';
+      if(meaningful){
+        var pct=Math.round(absCh);
+        var whTxt=(weeks>=4?'4-week':'recent')+' baseline';
+        if(good){compareTxt=pct+'% above '+whTxt;compareCls='is-up';}
+        else {compareTxt=pct+'% below '+whTxt;compareCls='is-down';}
+      } else if(median>0){compareTxt='On track with baseline';}
+      else {compareTxt='No baseline yet';}
+      var sparkSvg=renderSparkline(trend,notable&&good);
+      var cardCls='metric-card-v2'+(featured?' is-hero':'')+(notable&&good?' is-notable':'');
+      var valueCls='t-metric mc-value'+(featured?' is-hero':'')+(notable&&good?' is-coral':'');
+      var h='<div class="'+cardCls+'" data-metric="'+esc(label.toLowerCase())+'">';
+      h+='<span class="t-eyebrow mc-label">'+esc(label)+'</span>';
+      h+='<span class="'+valueCls+'">'+esc(display)+'</span>';
+      h+='<span class="mc-compare '+compareCls+'">'+esc(compareTxt)+'</span>';
+      if(percentile)h+='<div class="mc-footer" style="color:var(--coral)">'+esc(percentile)+' of history</div>';
+      if(sparkSvg)h+='<div class="mc-spark">'+sparkSvg+'</div>';
+      h+='</div>';
+      return h;
+    }
+
+    function renderSparkline(trend,isNotable){
+      if(!trend||trend.length<2)return '';
+      var vals=trend.map(function(v){
+        if(typeof v==='number')return isFinite(v)?v:null;
+        var s=String(v);
+        if(s==='-'||s==='—')return null;
+        var n=parseFloat(s);
+        if(!isFinite(n))return null;
+        if(/M$/i.test(s))n*=1000000;
+        else if(/K$/i.test(s))n*=1000;
+        return n;
+      });
+      if(vals.some(function(v){return v===null;}))return '';
+      var min=Math.min.apply(null,vals),max=Math.max.apply(null,vals);
+      if(max===min){max=min+(Math.abs(min)||1)*0.5;min=min-(Math.abs(min)||1)*0.5;}
+      var w=240,hh=54,padY=hh*0.18;
+      var pts=vals.map(function(v,i){
+        var x=vals.length>1?(i/(vals.length-1))*w:w/2;
+        var y=hh-padY-((v-min)/(max-min))*(hh-padY*2);
+        return x.toFixed(1)+','+y.toFixed(1);
+      });
+      var pathD='M '+pts.join(' L ');
+      var areaD=pathD+' L '+w.toFixed(1)+','+hh+' L 0,'+hh+' Z';
+      var stroke=isNotable?'#ff6b6b':'rgba(55,71,93,0.55)';
+      var fill  =isNotable?'rgba(255,107,107,0.14)':'rgba(55,71,93,0.06)';
+      var last=pts[pts.length-1].split(',');
+      var svg='<svg viewBox="0 0 '+w+' '+hh+'" preserveAspectRatio="none" style="width:100%;height:100%;display:block">';
+      svg+='<path d="'+areaD+'" fill="'+fill+'"/>';
+      svg+='<path d="'+pathD+'" stroke="'+stroke+'" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>';
+      if(isNotable)svg+='<circle cx="'+last[0]+'" cy="'+last[1]+'" r="3.5" fill="#ff6b6b"/>';
+      svg+='</svg>';
+      return svg;
     }
 
     function formatCreativeAnalysis(text){
