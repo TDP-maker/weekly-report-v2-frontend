@@ -124,6 +124,22 @@
     .mc-win-lock { font-size: 10.5px; color: var(--navy-50); font-weight: 500; line-height: 1.35; }
     .mc-note { font-size: 11.5px; color: var(--navy-70); line-height: 1.5; }
     @media(max-width:600px) { .mc-windows { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ── v2 pattern observations ──────────────────────────────────── */
+    .patterns-section { margin-top: 44px; margin-bottom: 48px; }
+    .patterns-section .sec-label { margin-top: 0; margin-bottom: 18px; }
+    .patterns-grid { display: flex; flex-direction: column; gap: 18px; }
+    .pattern-card { position: relative; background: var(--white); border: 1px solid var(--navy-08); border-radius: var(--radius-xl); padding: 40px 42px 34px; overflow: hidden; isolation: isolate; box-shadow: 0 1px 2px rgba(55, 71, 93, 0.03), 0 10px 30px rgba(55, 71, 93, 0.04); min-height: 240px; }
+    .pattern-card.has-atm::before { content: ''; position: absolute; top: -80px; right: -100px; width: 440px; height: 440px; background: var(--atm-coral); border-radius: 50%; z-index: 0; pointer-events: none; }
+    .pattern-card > * { position: relative; z-index: 1; }
+    .pc-eyebrow { display: inline-block; margin-bottom: 18px; color: var(--navy-50); }
+    .pc-title { margin-bottom: 20px; max-width: 780px; }
+    .pc-detail { margin-bottom: 22px; max-width: 720px; color: var(--navy-70); font-size: 15px; line-height: 1.7; }
+    .pc-viz { margin-top: 4px; margin-bottom: 24px; max-width: 560px; }
+    .pc-because { font-size: 11.5px; color: var(--navy-50); font-weight: 500; line-height: 1.6; border-top: 1px solid var(--navy-08); padding-top: 14px; font-variant-numeric: tabular-nums; }
+    .pc-because strong { font-weight: 700; color: var(--navy-70); letter-spacing: 0.10em; font-size: 10px; text-transform: uppercase; margin-right: 8px; font-variant-numeric: normal; }
+    .patterns-empty { background: var(--navy-04); border: 1px dashed var(--navy-12); border-radius: var(--radius-xl); padding: 48px 36px; text-align: center; color: var(--navy-70); font-size: 14.5px; line-height: 1.7; max-width: 680px; margin: 0 auto; }
+    @media(max-width:600px) { .pattern-card { padding: 28px 22px 24px; min-height: 200px; } .patterns-empty { padding: 36px 22px; } }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: smooth; }
     body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--page-bg); color: var(--navy); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -585,6 +601,8 @@
         h+='</div>';
       }
 
+      h+=renderPatternObservationsSection(intel,'Patterns we\'re tracking');
+
       if(intel&&intel.account_phase_note&&metrics&&metrics.wh>0){
         h+='<div class="momentum-card" style="margin-top:12px"><div class="momentum-text"><div class="momentum-headline">'+esc(intel.account_phase_note)+'</div>';
         if(metrics.wh>=4)h+='<div class="momentum-sub">'+metrics.wh+' weeks of data · Baselines '+(metrics.wh>=8?'mature':'building')+'</div>';
@@ -793,6 +811,57 @@
       state._heroAnimatedOnce=true;
     }
 
+    function parsePatternObservations(raw){
+      if(!raw)return null;
+      if(typeof raw==='string'){try{return JSON.parse(raw);}catch(e){return null;}}
+      return Array.isArray(raw)?raw:null;
+    }
+
+    function formatPatternType(t){
+      if(!t)return '';
+      return String(t).replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+    }
+
+    function renderPatternBecause(obs){
+      if(!obs)return '';
+      if(typeof obs.because==='string'&&obs.because.trim())return obs.because.trim();
+      if(typeof obs.supporting==='string'&&obs.supporting.trim())return obs.supporting.trim();
+      if(Array.isArray(obs.supporting_data)&&obs.supporting_data.length>0)return obs.supporting_data.filter(Boolean).slice(0,3).join(' · ');
+      if(Array.isArray(obs.evidence)&&obs.evidence.length>0)return obs.evidence.filter(Boolean).slice(0,3).join(' · ');
+      return '';
+    }
+
+    function renderPatternViz(obs){return '';} // chunk 9 dispatches per pattern_type
+
+    function renderPatternObservationsSection(intel,label){
+      if(!intel)return '';
+      var list=parsePatternObservations(intel.pattern_observations);
+      var h='<section class="patterns-section">';
+      h+='<div class="sec-label t-section-label">'+esc(label||'Patterns we\'re tracking')+'</div>';
+      if(!list||list.length===0){
+        h+='<div class="patterns-empty">Your pattern observations will appear as your account history builds. First patterns typically emerge at 10+ ads with 4+ weeks of spend.</div>';
+        h+='</section>';
+        return h;
+      }
+      h+='<div class="patterns-grid">';
+      list.slice(0,3).forEach(function(obs,i){
+        if(!obs)return;
+        var typeLabel=formatPatternType(obs.pattern_type);
+        var atmCls=i===0?' has-atm':'';
+        h+='<article class="pattern-card'+atmCls+'">';
+        if(typeLabel)h+='<div class="t-eyebrow pc-eyebrow">'+esc(typeLabel)+'</div>';
+        if(obs.title)h+='<h2 class="t-pattern-hero pc-title">'+esc(obs.title)+'</h2>';
+        if(obs.detail)h+='<p class="pc-detail">'+esc(obs.detail)+'</p>';
+        var viz=renderPatternViz(obs);
+        if(viz)h+='<div class="pc-viz">'+viz+'</div>';
+        var because=renderPatternBecause(obs);
+        if(because)h+='<div class="pc-because"><strong>Because</strong>'+esc(because)+'</div>';
+        h+='</article>';
+      });
+      h+='</div></section>';
+      return h;
+    }
+
     function pickHeroMetric(specs){
       // Preference order: ROAS > Revenue > Purchases > Spend > AOV.
       // Hero = first metric in preference that crosses notable threshold
@@ -853,7 +922,7 @@
       var WINDOWS=[
         {k:'4w',          label:'4-week',       threshold:4},
         {k:'12w',         label:'12-week',      threshold:12},
-        {k:'lifetime',    label:'Lifetime',     threshold:8},
+        {k:'lifetime',    label:'Lifetime',     threshold:4},
         {k:'seasonal_yoy',label:'Seasonal YoY', threshold:52}
       ];
       var fmtBase=function(v){
