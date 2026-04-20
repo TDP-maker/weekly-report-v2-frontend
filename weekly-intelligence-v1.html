@@ -105,6 +105,25 @@
     .mc-spark { position: absolute; left: 0; right: 0; bottom: 0; height: 54px; opacity: 0.9; pointer-events: none; z-index: 0; }
     .metric-card-v2.is-hero .mc-spark { height: 78px; }
     .mc-footer { font-size: 10px; font-weight: 500; color: var(--navy-50); margin-top: 12px; letter-spacing: 0.02em; position: relative; z-index: 1; }
+    .metric-card-v2 { cursor: pointer; }
+    .mc-caret { position: absolute; top: 14px; right: 14px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--navy-50); background: transparent; transition: transform 0.3s ease, background 0.2s, color 0.2s; z-index: 2; }
+    .metric-card-v2:hover .mc-caret { background: var(--navy-04); color: var(--navy); }
+    .metric-card-v2.is-expanded .mc-caret { transform: rotate(180deg); background: rgba(255, 107, 107, 0.12); color: var(--coral); }
+    .mc-expansion { display: none; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--navy-08); position: relative; z-index: 1; }
+    .metric-card-v2.is-expanded { background: rgba(255, 107, 107, 0.03); }
+    .metric-card-v2.is-expanded .mc-expansion { display: block; animation: mcFade 260ms ease; }
+    @keyframes mcFade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .mc-windows { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+    .mc-window { padding: 10px 12px; border: 1px solid var(--navy-08); border-radius: 10px; background: var(--white); min-height: 64px; }
+    .mc-window.is-locked { background: var(--navy-04); border-color: transparent; }
+    .mc-win-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--navy-50); margin-bottom: 6px; }
+    .mc-win-delta { font-size: 15px; font-weight: 700; color: var(--navy); letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+    .mc-win-delta.is-up { color: var(--coral); }
+    .mc-win-delta.is-down { color: var(--navy); }
+    .mc-win-base { font-size: 10px; font-weight: 500; color: var(--navy-50); margin-top: 3px; font-variant-numeric: tabular-nums; }
+    .mc-win-lock { font-size: 10.5px; color: var(--navy-50); font-weight: 500; line-height: 1.35; }
+    .mc-note { font-size: 11.5px; color: var(--navy-70); line-height: 1.5; }
+    @media(max-width:600px) { .mc-windows { grid-template-columns: repeat(2, 1fr); } }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: smooth; }
     body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--page-bg); color: var(--navy); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -456,6 +475,27 @@
         var tr={roas:[],spend:[]};
         rw.forEach(w=>{var wr=summary.filter(r=>r.fields.week_ending_date===w);var ws=0,wv=0;wr.forEach(r=>{ws+=Number(r.fields.spend)||0;wv+=Number(r.fields.revenue)||0;});tr.roas.push(ws>0?(wv/ws).toFixed(2)+'x':'-');tr.spend.push(ws>0?fmt(ws):'-');});
         var med=bl?{spend:bl.fields.weekly_spend_4w_median||0,revenue:bl.fields.weekly_revenue_4w_median||0,purchases:bl.fields.weekly_purchases_4w_median||0,roas:bl.fields.roas_4w_median||0,aov:bl.fields.aov_4w_median||0,roas_p75:bl.fields.roas_4w_p75||0,roas_p25:bl.fields.roas_4w_p25||0}:null;
+        // Multi-window baselines — read whatever windows the endpoint exposes.
+        // Missing windows render as "Unlocks in X weeks" placeholders in the
+        // expanded metric card view.
+        var windows=null;
+        if(bl){
+          var f=bl.fields;
+          var num=function(v){v=Number(v);return(isFinite(v)&&v>0)?v:null;};
+          var win=function(pfx){return{
+            '4w':          num(f[pfx+'_4w_median']),
+            '12w':         num(f[pfx+'_12w_median']),
+            'lifetime':    num(f[pfx+'_lifetime_median']),
+            'seasonal_yoy':num(f[pfx+'_seasonal_yoy_median'])
+          };};
+          windows={
+            spend:    win('weekly_spend'),
+            revenue:  win('weekly_revenue'),
+            purchases:win('weekly_purchases'),
+            roas:     win('roas'),
+            aov:      win('aov')
+          };
+        }
         var wh=bl?(bl.fields.weeks_of_history_available||0):0;
         var accRec=state.accounts&&state.accounts.find(function(a){return a.fields.ad_account_id===state.account;});
         var currency=(accRec&&(accRec.fields.account_currency||accRec.fields.currency||accRec.fields.Currency))||(rows[0]&&rows[0].fields.currency)||'';
@@ -470,7 +510,7 @@
         state.creatives=wc;
         state.topVideo=wc.filter(c=>c.videoPlays>0).sort((a,b)=>b.hookRate-a.hookRate)[0]||null;
         var fatigueCount=wc.filter(c=>c.fatigue).length;
-        state.metrics={cur,med,tr,currency,wh,fatigueCount,roasPercentile};
+        state.metrics={cur,med,tr,currency,wh,fatigueCount,roasPercentile,windows};
       }catch(e){console.warn('Metrics err',e);}
     }
 
@@ -541,7 +581,7 @@
         var heroKey=pickHeroMetric(specs);
         var ordered=specs.filter(function(s){return s.key===heroKey;}).concat(specs.filter(function(s){return s.key!==heroKey;}));
         h+='<div class="metrics-grid">';
-        ordered.forEach(function(s,i){h+=mCard(s.label,s.value,s.median,s.lowerBetter,s.display,s.trend,wh,i===0,s.percentile,'');});
+        ordered.forEach(function(s,i){h+=mCard(s,i===0,metrics);});
         h+='</div>';
       }
 
@@ -770,7 +810,10 @@
       return 'roas';
     }
 
-    function mCard(label,value,median,lowerBetter,display,trend,weeks,featured,percentile,tintClass){
+    function mCard(spec,featured,metrics){
+      var label=spec.label,value=spec.value,median=spec.median,lowerBetter=spec.lowerBetter;
+      var display=spec.display,trend=spec.trend,percentile=spec.percentile;
+      var weeks=(metrics&&metrics.wh)||0;
       var ch=median>0?((value-median)/median)*100:0;
       var absCh=Math.abs(ch);
       var meaningful=median>0&&absCh>1;
@@ -789,14 +832,63 @@
       var sparkSvg=renderSparkline(trend,notable&&good);
       var cardCls='metric-card-v2'+(featured?' is-hero':'')+(notable&&good?' is-notable':'');
       var valueCls='t-metric mc-value'+(featured?' is-hero':'')+(notable&&good?' is-coral':'');
-      var h='<div class="'+cardCls+'" data-metric="'+esc(label.toLowerCase())+'">';
+      var expansion=renderMetricExpansion(spec,metrics);
+      var h='<div class="'+cardCls+'" data-metric="'+esc(spec.key||label.toLowerCase())+'" role="button" tabindex="0" aria-expanded="false" onclick="toggleMetricCard(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleMetricCard(this);}">';
       h+='<span class="t-eyebrow mc-label">'+esc(label)+'</span>';
       h+='<span class="'+valueCls+'">'+esc(display)+'</span>';
       h+='<span class="mc-compare '+compareCls+'">'+esc(compareTxt)+'</span>';
       if(percentile)h+='<div class="mc-footer" style="color:var(--coral)">'+esc(percentile)+' of history</div>';
       if(sparkSvg)h+='<div class="mc-spark">'+sparkSvg+'</div>';
+      h+='<span class="mc-caret" aria-hidden="true"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg></span>';
+      h+=expansion;
       h+='</div>';
       return h;
+    }
+
+    function renderMetricExpansion(spec,metrics){
+      if(!metrics)return '';
+      var wh=metrics.wh||0;
+      var currency=metrics.currency||'';
+      var w=(metrics.windows&&metrics.windows[spec.key])||{'4w':null,'12w':null,'lifetime':null,'seasonal_yoy':null};
+      var WINDOWS=[
+        {k:'4w',          label:'4-week',       threshold:4},
+        {k:'12w',         label:'12-week',      threshold:12},
+        {k:'lifetime',    label:'Lifetime',     threshold:8},
+        {k:'seasonal_yoy',label:'Seasonal YoY', threshold:52}
+      ];
+      var fmtBase=function(v){
+        if(spec.key==='roas')return v.toFixed(2)+'x';
+        if(spec.key==='purchases')return fmt(v);
+        return fmtC(v,currency);
+      };
+      var h='<div class="mc-expansion">';
+      h+='<div class="mc-windows">';
+      WINDOWS.forEach(function(win){
+        var bl=w[win.k];
+        if(bl&&isFinite(bl)&&bl>0){
+          var ch=((spec.value-bl)/bl)*100;
+          var absCh=Math.abs(ch);
+          var good=spec.lowerBetter?ch<0:ch>0;
+          var cls=absCh<1?'':(good?'is-up':'is-down');
+          var deltaTxt=absCh<1?'≈ on baseline':(ch>=0?'+':'')+Math.round(ch)+'%';
+          h+='<div class="mc-window"><div class="mc-win-label">'+win.label+'</div><div class="mc-win-delta '+cls+'">'+deltaTxt+'</div><div class="mc-win-base">vs '+esc(fmtBase(bl))+'</div></div>';
+        } else {
+          var weeksToGo=Math.max(0,win.threshold-wh);
+          var lockTxt=weeksToGo>0?'Unlocks in '+weeksToGo+' week'+(weeksToGo===1?'':'s'):'Not available';
+          h+='<div class="mc-window is-locked"><div class="mc-win-label">'+win.label+'</div><div class="mc-win-lock">'+lockTxt+'</div></div>';
+        }
+      });
+      h+='</div>';
+      var anyLocked=WINDOWS.some(function(win){var bl=w[win.k];return !(bl&&isFinite(bl)&&bl>0);});
+      if(anyLocked)h+='<div class="mc-note">Baseline windows unlock as more weeks of data accumulate for this account.</div>';
+      h+='</div>';
+      return h;
+    }
+
+    function toggleMetricCard(card){
+      if(!card)return;
+      var expanded=card.classList.toggle('is-expanded');
+      card.setAttribute('aria-expanded',expanded?'true':'false');
     }
 
     function renderSparkline(trend,isNotable){
