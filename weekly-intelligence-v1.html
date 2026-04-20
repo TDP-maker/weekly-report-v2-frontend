@@ -836,6 +836,9 @@
       var t=String(obs.pattern_type||'').toLowerCase();
       if(t.indexOf('hook')!==-1)return vizHookStyle(obs);
       if(t.indexOf('format')!==-1)return vizFormatPerf(obs);
+      if(t.indexOf('retention')!==-1)return vizVideoRetention(obs);
+      if(t.indexOf('visual')!==-1||t.indexOf('theme')!==-1)return vizVisualTheme(obs);
+      if(t.indexOf('fatigue')!==-1||t.indexOf('decline')!==-1)return vizFatigueCurve(obs);
       return '';
     }
 
@@ -889,6 +892,91 @@
         s+='<rect x="'+barX+'" y="'+y+'" width="'+barW.toFixed(1)+'" height="'+barH+'" rx="7" fill="'+fill+'"/>';
         s+='<text x="'+(barX+barW+8)+'" y="'+(y+barH/2+5)+'" font-size="14" font-weight="700" fill="'+(isWin?'#ff6b6b':'#37475D')+'" font-family="DM Sans, sans-serif">'+d.value.toFixed(2)+'x</text>';
       });
+      s+='</svg>';return s;
+    }
+
+    function pvLinePts(obs,xKeys,yKeys){
+      var raw=obs.retention_points||obs.curve||obs.points||obs.weekly||obs.data||[];
+      if(!Array.isArray(raw))return [];
+      return raw.map(function(p,i){
+        if(typeof p==='number')return {x:i,y:p};
+        if(!p||typeof p!=='object')return null;
+        var x=i,y=0,k;
+        for(k=0;k<xKeys.length;k++)if(p[xKeys[k]]!=null){x=Number(p[xKeys[k]]);break;}
+        for(k=0;k<yKeys.length;k++)if(p[yKeys[k]]!=null){y=Number(p[yKeys[k]]);break;}
+        return {x:isFinite(x)?x:i,y:isFinite(y)?y:0};
+      }).filter(function(p){return p&&isFinite(p.x)&&isFinite(p.y);});
+    }
+
+    function vizVideoRetention(obs){
+      var pts=pvLinePts(obs,['t','second','seconds','time','x'],['pct','rate','retention','y','value']);
+      if(pts.length<3)return '';
+      var ymax=Math.max.apply(null,pts.map(function(p){return p.y;}));
+      if(ymax<=0)return '';
+      var yScale=ymax>1?1/Math.max(100,ymax):1;
+      var xmax=Math.max.apply(null,pts.map(function(p){return p.x;}));
+      if(xmax<=0)return '';
+      var w=520,h=160,pad=20,plotW=w-pad*2,plotH=h-pad*2;
+      var xy=function(p){return {x:pad+(p.x/xmax)*plotW,y:pad+plotH-(p.y*yScale)*plotH};};
+      var cliffIdx=-1,biggestDrop=0;
+      for(var i=1;i<pts.length;i++){var d=(pts[i-1].y-pts[i].y)*yScale;if(d>biggestDrop){biggestDrop=d;cliffIdx=i;}}
+      var path='';
+      pts.forEach(function(p,i){var c=xy(p);path+=(i?' L ':'M ')+c.x.toFixed(1)+' '+c.y.toFixed(1);});
+      var s='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-height:180px;display:block" preserveAspectRatio="xMinYMin meet">';
+      s+='<line x1="'+pad+'" y1="'+(h-pad)+'" x2="'+(w-pad)+'" y2="'+(h-pad)+'" stroke="rgba(55,71,93,0.12)" stroke-width="1"/>';
+      s+='<path d="'+path+'" stroke="#37475D" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+      if(cliffIdx>0&&biggestDrop>0.05){
+        var cp=xy(pts[cliffIdx]);
+        s+='<circle cx="'+cp.x.toFixed(1)+'" cy="'+cp.y.toFixed(1)+'" r="6" fill="#ff6b6b"/>';
+        var tx=Math.min(cp.x+10,w-pad-80),ty=Math.max(cp.y-8,pad+12);
+        s+='<text x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" font-size="12" font-weight="700" fill="#ff6b6b" font-family="DM Sans, sans-serif">-'+Math.round(biggestDrop*100)+'% cliff</text>';
+      }
+      s+='</svg>';return s;
+    }
+
+    function vizVisualTheme(obs){
+      var raw=obs.thumbnails||obs.images||obs.thumbs||obs.examples||[];
+      if(!Array.isArray(raw))return '';
+      var items=raw.slice(0,4).map(function(t,i){
+        if(!t)return null;
+        if(typeof t==='string')return {url:t,isWin:i===0,caption:''};
+        var url=t.url||t.src||t.thumbnail||t.image||t.image_url||'';
+        var isWin=!!(t.winner||t.top||t.is_winner);
+        return url?{url:url,isWin:isWin,caption:t.caption||t.label||''}:null;
+      }).filter(Boolean);
+      if(items.length<2)return '';
+      if(!items.some(function(x){return x.isWin;}))items[0].isWin=true;
+      var h='<div style="display:flex;gap:10px;flex-wrap:wrap">';
+      items.forEach(function(x){
+        var border=x.isWin?'3px solid #ff6b6b':'1px solid rgba(55,71,93,0.12)';
+        h+='<div style="flex:1 1 0;min-width:80px;aspect-ratio:1/1;border-radius:10px;overflow:hidden;border:'+border+';background:rgba(55,71,93,0.04);position:relative">';
+        h+='<img src="'+esc(x.url)+'" alt="'+esc(x.caption)+'" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy"/>';
+        h+='</div>';
+      });
+      h+='</div>';return h;
+    }
+
+    function vizFatigueCurve(obs){
+      var pts=pvLinePts(obs,['week','day','x','t'],['value','roas','y','metric']);
+      if(pts.length<3)return '';
+      var ys=pts.map(function(p){return p.y;}),xs=pts.map(function(p){return p.x;});
+      var ymax=Math.max.apply(null,ys),ymin=Math.min.apply(null,ys);
+      var xmax=Math.max.apply(null,xs),xmin=Math.min.apply(null,xs);
+      if(ymax<=ymin)ymax=ymin+1;
+      if(xmax<=xmin)xmax=xmin+1;
+      var w=520,h=160,pad=22,plotW=w-pad*2,plotH=h-pad*2;
+      var xy=function(p){return {x:pad+((p.x-xmin)/(xmax-xmin))*plotW,y:pad+plotH-((p.y-ymin)/(ymax-ymin))*plotH};};
+      var path='';
+      pts.forEach(function(p,i){var c=xy(p);path+=(i?' L ':'M ')+c.x.toFixed(1)+' '+c.y.toFixed(1);});
+      var first=xy(pts[0]),last=xy(pts[pts.length-1]);
+      var id='fatg'+Math.floor(Math.random()*1e6);
+      var s='<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:auto;max-height:180px;display:block" preserveAspectRatio="xMinYMin meet">';
+      s+='<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#37475D"/><stop offset="1" stop-color="#ff6b6b"/></linearGradient></defs>';
+      s+='<line x1="'+pad+'" y1="'+(h-pad)+'" x2="'+(w-pad)+'" y2="'+(h-pad)+'" stroke="rgba(55,71,93,0.12)" stroke-width="1"/>';
+      s+='<path d="'+path+'" stroke="url(#'+id+')" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>';
+      s+='<circle cx="'+first.x.toFixed(1)+'" cy="'+first.y.toFixed(1)+'" r="4" fill="#37475D"/>';
+      s+='<circle cx="'+last.x.toFixed(1)+'" cy="'+last.y.toFixed(1)+'" r="5" fill="#ff6b6b"/>';
+      s+='<text x="'+last.x.toFixed(1)+'" y="'+Math.max(last.y-10,pad+12).toFixed(1)+'" font-size="12" font-weight="700" fill="#ff6b6b" text-anchor="middle" font-family="DM Sans, sans-serif">'+pts[pts.length-1].y.toFixed(2)+'</text>';
       s+='</svg>';return s;
     }
 
