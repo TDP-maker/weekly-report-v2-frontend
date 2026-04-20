@@ -145,7 +145,8 @@
     .sec-label { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 12px; margin-top: 28px; }
     .sec-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(55, 71, 93, 0.12), transparent); }
     .sec-label svg { width: 13px; height: 13px; color: var(--coral); flex-shrink: 0; }
-    .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 4px; }
+    .metrics-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 4px; align-items: stretch; }
+    .metrics-grid .metric-card-v2 { min-width: 0; }
     .metric-card { padding: 18px 20px; border-radius: var(--radius-lg); border: 1px solid transparent; box-shadow: var(--shadow-sm); transition: all 0.25s; }
     .metric-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
     .metric-card.m-spend { background: #e3edf3 !important; border-color: rgba(0, 0, 0, 0.05); }
@@ -323,9 +324,9 @@
     .empty-icon { font-size: 36px; margin-bottom: 14px; }
     .empty-state h3 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
     .empty-state p { font-size: 13px; line-height: 1.6; }
-    @media(max-width:960px) { .metrics-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media(max-width:960px) { .metrics-grid { grid-template-columns: 1fr 1fr; } .metric-card-v2.is-hero { grid-column: 1 / -1; } }
     @media(max-width:760px) { .brief-full-grid { grid-template-columns: 1fr; } .creatives-grid { grid-template-columns: 1fr 1fr; } .story-headline { font-size: 20px; } }
-    @media(max-width:600px) { .page { padding: 0 16px 40px; } .header-inner { padding: 16px 18px 14px; } .metrics-grid { grid-template-columns: 1fr 1fr; gap: 8px; } .creatives-grid { grid-template-columns: 1fr; } .brief-actions { flex-direction: column; } .story-card { padding: 22px 20px; } .story-headline { font-size: 18px; } }
+    @media(max-width:600px) { .page { padding: 0 16px 40px; } .header-inner { padding: 16px 18px 14px; } .metrics-grid { grid-template-columns: 1fr 1fr; gap: 10px; } .metric-card-v2.is-hero { grid-column: 1 / -1; padding: 26px 22px 24px; } .creatives-grid { grid-template-columns: 1fr; } .brief-actions { flex-direction: column; } .story-card { padding: 22px 20px; } .story-headline { font-size: 18px; } }
   </style>
 </head>
 
@@ -530,12 +531,17 @@
       if(metrics){
         var cur=metrics.cur,med=metrics.med,tr=metrics.tr,wh=metrics.wh;
         h+='<div class="sec-label"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>This week\'s performance</div>';
+        var specs=[
+          {key:'roas',     label:'ROAS',      value:cur.roas,      median:med?med.roas:0,      lowerBetter:false, display:cur.roas.toFixed(2)+'x',       trend:tr.roas,  percentile:metrics.roasPercentile},
+          {key:'revenue',  label:'Revenue',   value:cur.revenue,   median:med?med.revenue:0,   lowerBetter:false, display:fmtC(cur.revenue,currency),    trend:null,     percentile:null},
+          {key:'purchases',label:'Purchases', value:cur.purchases, median:med?med.purchases:0, lowerBetter:false, display:fmt(cur.purchases),            trend:null,     percentile:null},
+          {key:'spend',    label:'Spend',     value:cur.spend,     median:med?med.spend:0,     lowerBetter:true,  display:fmtC(cur.spend,currency),      trend:tr.spend, percentile:null},
+          {key:'aov',      label:'AOV',       value:cur.aov,       median:med?med.aov:0,       lowerBetter:false, display:fmtC(cur.aov,currency),        trend:null,     percentile:null}
+        ];
+        var heroKey=pickHeroMetric(specs);
+        var ordered=specs.filter(function(s){return s.key===heroKey;}).concat(specs.filter(function(s){return s.key!==heroKey;}));
         h+='<div class="metrics-grid">';
-        h+=mCard('Spend',cur.spend,med?med.spend:0,true,fmtC(cur.spend,currency),tr.spend,wh,false,null,'m-spend');
-        h+=mCard('Revenue',cur.revenue,med?med.revenue:0,false,fmtC(cur.revenue,currency),null,wh,false,null,'m-revenue');
-        h+=mCard('ROAS',cur.roas,med?med.roas:0,false,cur.roas.toFixed(2)+'x',tr.roas,wh,true,metrics.roasPercentile,'m-roas');
-        h+=mCard('Purchases',cur.purchases,med?med.purchases:0,false,fmt(cur.purchases),null,wh,false,null,'m-purchases');
-        h+=mCard('AOV',cur.aov,med?med.aov:0,false,fmtC(cur.aov,currency),null,wh,false,null,'m-aov');
+        ordered.forEach(function(s,i){h+=mCard(s.label,s.value,s.median,s.lowerBetter,s.display,s.trend,wh,i===0,s.percentile,'');});
         h+='</div>';
       }
 
@@ -745,6 +751,23 @@
       }
       requestAnimationFrame(step);
       state._heroAnimatedOnce=true;
+    }
+
+    function pickHeroMetric(specs){
+      // Preference order: ROAS > Revenue > Purchases > Spend > AOV.
+      // Hero = first metric in preference that crosses notable threshold
+      // (>=25% improvement, or >=15% decline in its good direction).
+      // Fallback: ROAS (product's headline metric).
+      var order=['roas','revenue','purchases','spend','aov'];
+      for(var i=0;i<order.length;i++){
+        var s=specs.find(function(x){return x.key===order[i];});
+        if(!s||!s.median)continue;
+        var ch=((s.value-s.median)/s.median)*100;
+        var good=s.lowerBetter?ch<0:ch>0;
+        var absCh=Math.abs(ch);
+        if((good&&absCh>=25)||(!good&&absCh>=15))return s.key;
+      }
+      return 'roas';
     }
 
     function mCard(label,value,median,lowerBetter,display,trend,weeks,featured,percentile,tintClass){
