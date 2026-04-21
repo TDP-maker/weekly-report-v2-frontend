@@ -342,6 +342,25 @@
     .brief-only-note-v2 { background: var(--navy-04); border: 1px dashed var(--navy-12); border-radius: var(--radius-lg); padding: 28px 22px; text-align: center; }
     .brief-only-note-v2-title { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
     .brief-only-note-v2-body { font-size: 12px; color: var(--navy-50); line-height: 1.6; }
+
+    /* ── v2 Send to Designer modal ────────────────────────────────── */
+    .modal-root { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 32px 20px; opacity: 0; transition: opacity 180ms ease; pointer-events: none; }
+    .modal-root.is-open { opacity: 1; pointer-events: auto; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(28, 35, 48, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); cursor: pointer; }
+    .modal-dialog { position: relative; width: 100%; max-width: 680px; max-height: calc(100vh - 64px); background: var(--white); border-radius: var(--radius-xl); box-shadow: 0 24px 64px rgba(28, 35, 48, 0.30); display: flex; flex-direction: column; overflow: hidden; transform: translateY(8px) scale(0.98); transition: transform 180ms ease; outline: none; }
+    .modal-root.is-open .modal-dialog { transform: translateY(0) scale(1); }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 28px 32px 20px; border-bottom: 1px solid var(--navy-08); }
+    .modal-head-text { min-width: 0; flex: 1; }
+    .modal-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--navy-50); margin-bottom: 8px; }
+    .modal-title { font-size: 22px; font-weight: 700; color: var(--navy); letter-spacing: -0.015em; line-height: 1.25; }
+    .modal-close { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--navy-08); background: var(--white); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--navy-70); padding: 0; font-family: inherit; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+    .modal-close:hover { background: var(--navy-04); border-color: var(--navy-12); color: var(--navy); }
+    .modal-close svg { width: 18px; height: 18px; stroke: currentColor; fill: none; }
+    .modal-body { padding: 24px 32px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+    .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 18px 32px 24px; border-top: 1px solid var(--navy-08); background: var(--white); flex-wrap: wrap; }
+    @media(prefers-reduced-motion: reduce) { .modal-root { transition: none; } .modal-dialog { transition: none; transform: none; } }
+    @media(max-width: 560px) { .modal-root { padding: 0; align-items: flex-end; } .modal-dialog { max-height: 90vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; } .modal-head { padding: 22px 22px 16px; } .modal-body { padding: 20px 22px; } .modal-actions { padding: 16px 22px 22px; } }
+
     .brief-only-note { background: var(--cream-light); border: 2px dashed var(--warm-gray); border-radius: var(--radius-xl); padding: 32px 20px; text-align: center; }
     /* ── v2 active brief ──────────────────────────────────────────── */
     .brief-v2 { position: relative; background: var(--navy); border-radius: var(--radius-xl); padding: 52px 48px 40px; overflow: hidden; color: #fff; box-shadow: 0 12px 36px rgba(55, 71, 93, 0.18); }
@@ -1343,7 +1362,58 @@
     }
 
     function openSendToDesignerModal(briefIdx){
-      console.log('[SendToDesigner] stub — modal for brief index',briefIdx,'(chunk 16)');
+      try{
+        var raw=document.getElementById('briefData');if(!raw)return;
+        var briefs=JSON.parse(raw.textContent);
+        var b=briefs[briefIdx];
+        if(!b)return;
+        closeSendToDesignerModal();
+        var root=document.createElement('div');
+        root.className='modal-root';
+        root.id='sendToDesignerModal';
+        root.setAttribute('role','dialog');
+        root.setAttribute('aria-modal','true');
+        root.setAttribute('aria-labelledby','sendToDesignerTitle');
+        root.innerHTML=renderSendToDesignerModal(b,briefIdx);
+        document.body.appendChild(root);
+        document.body.style.overflow='hidden';
+        root.querySelectorAll('[data-modal-close]').forEach(function(el){el.addEventListener('click',closeSendToDesignerModal);});
+        document.addEventListener('keydown',modalKeyHandler);
+        requestAnimationFrame(function(){
+          root.classList.add('is-open');
+          var dlg=root.querySelector('.modal-dialog');
+          if(dlg)dlg.focus();
+        });
+      }catch(e){console.warn('openSendToDesignerModal err',e);}
+    }
+
+    function closeSendToDesignerModal(){
+      var root=document.getElementById('sendToDesignerModal');
+      if(!root)return;
+      root.classList.remove('is-open');
+      document.body.style.overflow='';
+      document.removeEventListener('keydown',modalKeyHandler);
+      setTimeout(function(){if(root.parentNode)root.parentNode.removeChild(root);},200);
+    }
+
+    function modalKeyHandler(e){
+      if(e.key==='Escape')closeSendToDesignerModal();
+    }
+
+    function renderSendToDesignerModal(b,briefIdx){
+      var title=b.concept_name||'Brief '+(briefIdx+1);
+      var h='<div class="modal-backdrop" data-modal-close></div>';
+      h+='<div class="modal-dialog" tabindex="-1">';
+      h+='<header class="modal-head"><div class="modal-head-text">';
+      h+='<div class="modal-eyebrow">Brief for designer</div>';
+      h+='<h2 class="modal-title" id="sendToDesignerTitle">'+esc(title)+'</h2>';
+      h+='</div><button class="modal-close" type="button" data-modal-close aria-label="Close">';
+      h+='<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+      h+='</button></header>';
+      h+='<div class="modal-body"></div>';
+      h+='<footer class="modal-actions"></footer>';
+      h+='</div>';
+      return h;
     }
 
     function switchBrief(idx){
