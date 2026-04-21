@@ -171,6 +171,27 @@
     .ch-link:hover { color: #ff6b6b; border-color: #ff6b6b; }
     @media(max-width:760px) { .creative-hero { grid-template-columns: 1fr; gap: 26px; padding: 26px; } .creative-hero-thumb { width: 100%; max-width: 320px; justify-self: start; } }
 
+    /* ── v2 supporting creatives ──────────────────────────────────── */
+    .supporting-creatives { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 8px; }
+    .sc-card { background: var(--white); border: 1px solid var(--navy-08); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.2s; }
+    .sc-card:hover { border-color: var(--navy-12); }
+    .sc-thumb { position: relative; aspect-ratio: 1/1; background: var(--navy-04); overflow: hidden; }
+    .sc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .sc-thumb-ph { width: 34px; height: 34px; stroke: var(--navy-50); stroke-width: 1.5; fill: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .sc-fatigue-badge { position: absolute; top: 10px; left: 10px; background: rgba(255, 107, 107, 0.92); color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; backdrop-filter: blur(2px); }
+    .sc-info { padding: 14px 16px 16px; }
+    .sc-name { font-size: 12px; color: var(--navy); font-weight: 500; margin-bottom: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.01em; }
+    .sc-stats { display: flex; gap: 14px; align-items: baseline; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+    .sc-stat { display: flex; align-items: baseline; gap: 5px; }
+    .sc-stat-val { font-size: 14px; font-weight: 600; color: var(--navy); }
+    .sc-stat-val.sc-roas { color: #ff6b6b; font-size: 16px; font-weight: 700; }
+    .sc-stat-lbl { font-size: 10px; color: var(--navy-50); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    .sc-fatigue-tag { margin-top: 10px; font-size: 10px; color: rgba(255, 107, 107, 0.85); font-weight: 500; letter-spacing: 0.02em; }
+    .sc-link { display: inline-block; margin-top: 10px; font-size: 11px; color: var(--navy-70); text-decoration: none; border-bottom: 1px solid var(--navy-12); padding-bottom: 1px; transition: color 0.2s, border-color 0.2s; }
+    .sc-link:hover { color: #ff6b6b; border-color: #ff6b6b; }
+    @media(max-width:760px) { .supporting-creatives { grid-template-columns: 1fr 1fr; } }
+    @media(max-width:480px) { .supporting-creatives { grid-template-columns: 1fr; } }
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: smooth; }
     body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--page-bg); color: var(--navy); -webkit-font-smoothing: antialiased; min-height: 100vh; }
@@ -655,24 +676,7 @@
       if(state.creatives.length>0){
         h+='<div class="sec-label"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Top performing creatives</div>';
         h+=renderCreativeHero(state.creatives[0],currency);
-        if(state.creatives.length>1){
-          h+='<div class="creatives-grid">';
-          state.creatives.slice(1,4).forEach(function(c){
-            h+='<div class="creative-card"><div class="ad-frame">';
-            if(c.thumb)h+='<img src="'+c.thumb+'" onerror="this.parentElement.querySelector(\'.ad-frame-placeholder\').style.display=\'flex\';this.style.display=\'none\'">';
-            h+='<div class="ad-frame-placeholder"'+(c.thumb?' style="display:none"':'')+'><svg viewBox="0 0 24 24" style="width:28px;height:28px;stroke:rgba(255,255,255,0.3);stroke-width:1.5;fill:none"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>';
-            h+='<div class="ad-overlay"><div class="ad-top">';
-            if(c.hookText)h+='<span class="ad-eyebrow">'+esc(c.hookText.slice(0,40).toUpperCase())+'</span>';
-            h+='<h3 class="ad-headline">'+esc(c.name.split('_').slice(0,4).join(' '))+'</h3></div>';
-            h+='<div class="ad-badges">';if(c.fatigue)h+='<span class="ad-badge badge-fatigue">Study &amp; Replicate</span>';h+='</div>';
-            h+='<div class="ad-bottom">';if(c.link)h+='<a href="'+c.link+'" target="_blank" class="ad-cta" onclick="event.stopPropagation()">View on Instagram ↗</a>';h+='</div></div></div>';
-            h+='<div class="creative-info"><div class="creative-name" title="'+esc(c.name)+'">'+esc(c.name)+'</div>';
-            h+='<div class="creative-stats"><div><div class="cs-label">ROAS</div><div class="cs-val coral">'+c.roas.toFixed(2)+'x</div></div><div><div class="cs-label">Spend</div><div class="cs-val">'+fmtC(c.spend,currency)+'</div></div><div><div class="cs-label">'+(c.purchases>0?'Purch':'Leads')+'</div><div class="cs-val">'+(c.purchases||c.leads)+'</div></div></div>';
-            if(c.fatigue)h+='<div class="cr-fatigue-tag">4+ weeks running - prepare a successor</div>';
-            h+='</div></div>';
-          });
-          h+='</div>';
-        }
+        h+=renderSupportingCreatives(state.creatives.slice(1,4),currency);
       }
 
       if(intel&&intel.issues&&intel.issues.length>0){
@@ -1068,6 +1072,39 @@
       if(c.fatigue)h+='<div class="ch-fatigue">Study &amp; replicate — 4+ weeks running</div>';
       if(c.link)h+='<a href="'+esc(c.link)+'" target="_blank" rel="noopener" class="ch-link">View on Instagram ↗</a>';
       h+='</div></div>';
+      return h;
+    }
+
+    function renderSupportingCreatives(list,currency){
+      if(!list||list.length===0)return '';
+      var h='<div class="supporting-creatives">';
+      list.forEach(function(c){
+        if(!c)return;
+        var supVal=c.purchases>0?c.purchases:(c.leads||0);
+        var supLbl=c.purchases>0?'Purch':'Leads';
+        var shortName=(c.name||'').length>28?c.name.slice(0,28)+'…':(c.name||'');
+        h+='<article class="sc-card">';
+        h+='<div class="sc-thumb">';
+        if(c.thumb){
+          h+='<img src="'+esc(c.thumb)+'" alt="" onerror="this.style.display=\'none\';this.nextElementSibling&&(this.nextElementSibling.style.display=\'block\')"/>';
+          h+='<svg class="sc-thumb-ph" viewBox="0 0 24 24" style="display:none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+        } else {
+          h+='<svg class="sc-thumb-ph" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>';
+        }
+        if(c.fatigue)h+='<span class="sc-fatigue-badge">Fatigued</span>';
+        h+='</div>';
+        h+='<div class="sc-info">';
+        h+='<div class="sc-name" title="'+esc(c.name||'')+'">'+esc(shortName)+'</div>';
+        h+='<div class="sc-stats">';
+        h+='<span class="sc-stat"><span class="sc-stat-val sc-roas">'+(Number(c.roas)||0).toFixed(2)+'x</span></span>';
+        h+='<span class="sc-stat"><span class="sc-stat-val">'+fmtC(c.spend,currency)+'</span><span class="sc-stat-lbl">spend</span></span>';
+        if(supVal>0)h+='<span class="sc-stat"><span class="sc-stat-val">'+fmt(supVal)+'</span><span class="sc-stat-lbl">'+supLbl+'</span></span>';
+        h+='</div>';
+        if(c.fatigue)h+='<div class="sc-fatigue-tag">4+ weeks running</div>';
+        if(c.link)h+='<a href="'+esc(c.link)+'" target="_blank" rel="noopener" class="sc-link">Instagram ↗</a>';
+        h+='</div></article>';
+      });
+      h+='</div>';
       return h;
     }
 
