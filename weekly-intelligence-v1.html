@@ -330,8 +330,18 @@
     .briefs-outer { margin-top: 0; }
     .briefs-two-col { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
     .brief-active-wrap { min-width: 0; }
-    .brief-sidebar { display: flex; flex-direction: column; gap: 12px; }
-    .brief-sidebar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--coral); margin-bottom: 4px; }
+    .brief-sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .brief-sidebar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #ff6b6b; margin-bottom: 4px; }
+    .brief-side-v2 { position: relative; display: flex; flex-direction: column; gap: 14px; width: 100%; appearance: none; -webkit-appearance: none; background: var(--navy); border: none; border-radius: var(--radius-lg); padding: 22px 22px 22px; cursor: pointer; font-family: inherit; text-align: left; color: #fff; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .brief-side-v2::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: #ff6b6b; }
+    .brief-side-v2:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(55, 71, 93, 0.18); }
+    .brief-side-v2-concept { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; color: #ff6b6b; }
+    .brief-side-v2-hook { font-size: 17px; font-weight: 500; color: rgba(255, 255, 255, 0.92); line-height: 1.4; letter-spacing: -0.005em; }
+    .brief-side-v2-cta { display: inline-flex; align-self: flex-start; align-items: center; gap: 5px; padding: 7px 14px; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 999px; background: transparent; color: #fff; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; transition: border-color 0.2s, background 0.2s; margin-top: 2px; }
+    .brief-side-v2:hover .brief-side-v2-cta { border-color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.06); }
+    .brief-only-note-v2 { background: var(--navy-04); border: 1px dashed var(--navy-12); border-radius: var(--radius-lg); padding: 28px 22px; text-align: center; }
+    .brief-only-note-v2-title { font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+    .brief-only-note-v2-body { font-size: 12px; color: var(--navy-50); line-height: 1.6; }
     .brief-only-note { background: var(--cream-light); border: 2px dashed var(--warm-gray); border-radius: var(--radius-xl); padding: 32px 20px; text-align: center; }
     /* ── v2 active brief ──────────────────────────────────────────── */
     .brief-v2 { position: relative; background: var(--navy); border-radius: var(--radius-xl); padding: 52px 48px 40px; overflow: hidden; color: #fff; box-shadow: 0 12px 36px rgba(55, 71, 93, 0.18); }
@@ -373,7 +383,7 @@
     .brief-side-cta { padding: 0 16px 16px; font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.95); text-transform: uppercase; letter-spacing: 0.06em; }
     .brief-side-cta-btn { display: inline-flex !important; align-items: center; gap: 6px; background: rgba(255, 255, 255, 0.25) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1.5px solid rgba(255, 255, 255, 0.55) !important; border-radius: 8px; padding: 8px 16px; font-size: 10px; font-weight: 700; color: #fff !important; text-transform: uppercase; letter-spacing: 0.06em; transition: background 0.15s, border-color 0.15s; }
     .brief-side-card:hover .brief-side-cta-btn { background: rgba(255, 255, 255, 0.38) !important; border-color: rgba(255, 255, 255, 0.75) !important; }
-    @media(max-width:760px) { .briefs-two-col { grid-template-columns: 1fr; } .brief-sidebar { flex-direction: row; flex-wrap: wrap; } .brief-chip-btn { width: auto; flex: 1; min-width: 200px; } }
+    @media(max-width:760px) { .briefs-two-col { grid-template-columns: 1fr; } .brief-sidebar { flex-direction: row; flex-wrap: wrap; } .brief-chip-btn { width: auto; flex: 1; min-width: 200px; } .brief-side-v2 { flex: 1; min-width: 260px; } }
     .brief-num { width: 34px; height: 34px; border-radius: 9px; background: rgba(255, 107, 107, 0.18); border: 1px solid rgba(255, 107, 107, 0.32); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--coral); flex-shrink: 0; }
     .brief-concept { font-size: 17px; font-weight: 700; color: #fff; letter-spacing: -0.02em; line-height: 1.25; }
     .brief-sub { font-size: 11px; color: rgba(255, 255, 255, 0.45); margin-top: 4px; }
@@ -738,12 +748,15 @@
           h+='<div class="brief-sidebar-label">More briefs</div>';
           briefs.slice(1).forEach(function(b,i){
             var idx=i+1;
-            h+='<button class="brief-side-card" onclick="switchBrief('+idx+')" id="briefChip'+idx+'"><div class="brief-side-hdr"><div class="brief-side-num">'+(idx+1)+'</div><div class="brief-side-concept">'+esc(b.concept_name||'Brief '+(idx+1))+'</div></div>';
-            h+='<div class="brief-side-hook">&ldquo;'+esc(b.hook.slice(0,80)+(b.hook.length>80?'...':''))+'&rdquo;</div>';
-            h+='<div class="brief-side-cta"><span class="brief-side-cta-btn">View brief <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;stroke-width:2.5;fill:none;display:inline-block;vertical-align:middle;margin-left:2px"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></div></button>';
+            var hookShort=b.hook?(b.hook.length>80?b.hook.slice(0,80)+'…':b.hook):'';
+            h+='<button class="brief-side-v2" onclick="switchBrief('+idx+')" id="briefChip'+idx+'">';
+            h+='<span class="brief-side-v2-concept">'+esc(b.concept_name||'Brief '+(idx+1))+'</span>';
+            if(hookShort)h+='<span class="brief-side-v2-hook">&ldquo;'+esc(hookShort)+'&rdquo;</span>';
+            h+='<span class="brief-side-v2-cta">View brief <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;stroke-width:2.5;fill:none;display:inline-block;vertical-align:middle"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span>';
+            h+='</button>';
           });
         } else {
-          h+='<div class="brief-only-note"><div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px">1 brief this week</div><div style="font-size:12px;color:var(--text-muted);line-height:1.6">More briefs appear as more data builds up each week.</div></div>';
+          h+='<div class="brief-only-note-v2"><div class="brief-only-note-v2-title">1 brief this week</div><div class="brief-only-note-v2-body">More briefs appear as more data builds up each week.</div></div>';
         }
         h+='</div></div>';
         h+='<script id="briefData" type="application/json">'+JSON.stringify(briefs)+'<\/script>';
@@ -1339,7 +1352,7 @@
         var briefs=JSON.parse(raw.textContent);
         var wrap=document.getElementById('briefActiveWrap');
         if(!wrap||!briefs[idx])return;
-        document.querySelectorAll('.brief-side-card').forEach(function(btn,i){btn.style.opacity=i===(idx-1)?'1':'0.7';btn.style.boxShadow=i===(idx-1)?'0 0 0 2px var(--coral), 0 10px 32px rgba(55,71,93,0.22)':'';});
+        document.querySelectorAll('.brief-side-v2').forEach(function(btn,i){var active=i===(idx-1);btn.style.opacity=active?'1':'0.72';btn.style.boxShadow=active?'0 0 0 2px #ff6b6b, 0 10px 28px rgba(55, 71, 93, 0.20)':'';});
         wrap.classList.add('is-fading');
         setTimeout(function(){
           wrap.innerHTML=renderBriefFull(briefs[idx],idx,briefs.length);
