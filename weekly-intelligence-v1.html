@@ -373,6 +373,9 @@
     .std-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 13px; color: var(--navy); font-weight: 500; }
     .std-toggle input { width: 16px; height: 16px; accent-color: #ff6b6b; cursor: pointer; margin: 0; }
     .std-toggle-hint { font-size: 11px; color: var(--navy-50); margin-top: 6px; margin-bottom: 14px; line-height: 1.55; }
+    .std-reset-wrap { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--navy-08); display: flex; justify-content: flex-end; }
+    .std-reset { background: none; border: 0; padding: 4px 0; font-family: inherit; font-size: 12px; font-weight: 500; color: var(--navy-50); cursor: pointer; letter-spacing: 0.02em; transition: color 0.15s; }
+    .std-reset:hover { color: #ff6b6b; }
 
     .brief-only-note { background: var(--cream-light); border: 2px dashed var(--warm-gray); border-radius: var(--radius-xl); padding: 32px 20px; text-align: center; }
     /* ── v2 active brief ──────────────────────────────────────────── */
@@ -1394,7 +1397,7 @@
         document.addEventListener('keydown',modalKeyHandler);
         requestAnimationFrame(function(){
           root.classList.add('is-open');
-          wireSendToDesignerModal(root);
+          wireSendToDesignerModal(root,b,briefIdx);
           var dlg=root.querySelector('.modal-dialog');
           if(dlg)dlg.focus();
         });
@@ -1442,21 +1445,37 @@
       h+='<textarea id="std-why" class="std-textarea" rows="4">'+esc(b.why_it_works||'')+'</textarea></div>';
       h+='<div class="std-field"><label class="std-label" for="std-note">Note for designer<span class="std-label-optional">optional</span></label>';
       h+='<textarea id="std-note" class="std-textarea" rows="3" placeholder="&ldquo;Keep it clean, one subject, no text overlay &middot; mirror the tone of brief 1 &middot; avoid stock-photo vibe&rdquo;"></textarea></div>';
+      h+='<div class="std-reset-wrap"><button type="button" class="std-reset" id="std-reset">Reset to original</button></div>';
       h+='</div>';
       h+='<footer class="modal-actions"></footer>';
       h+='</div>';
       return h;
     }
 
-    function wireSendToDesignerModal(root){
+    function briefDraftKey(briefIdx){return 'peach-brief-draft-'+(state.week||'unknown')+'-'+briefIdx;}
+    function loadBriefDraft(key){
+      try{var raw=localStorage.getItem(key);if(!raw)return null;var d=JSON.parse(raw);return(d&&typeof d==='object')?d:null;}
+      catch(e){try{localStorage.removeItem(key);}catch(e2){}return null;}
+    }
+    function saveBriefDraft(key,draft){try{localStorage.setItem(key,JSON.stringify(draft));}catch(e){}}
+    function clearBriefDraft(key){try{localStorage.removeItem(key);}catch(e){}}
+
+    function wireSendToDesignerModal(root,b,briefIdx){
       if(!root)return;
       function countWords(s){s=(s||'').trim();if(!s)return 0;return s.split(/\s+/).length;}
       var hookEl=root.querySelector('#std-hook');
       var hookCt=root.querySelector('#std-hook-counter');
       var copyEl=root.querySelector('#std-copy');
       var copyCt=root.querySelector('#std-copy-counter');
+      var ctaEl=root.querySelector('#std-cta');
+      var visualEl=root.querySelector('#std-visual');
       var toggle=root.querySelector('#std-rationale-toggle');
       var whyWrap=root.querySelector('#std-why-wrap');
+      var whyEl=root.querySelector('#std-why');
+      var noteEl=root.querySelector('#std-note');
+      var resetBtn=root.querySelector('#std-reset');
+      var key=briefDraftKey(briefIdx);
+      var saveTimer=null;
       function updateHookCounter(){
         if(!hookEl||!hookCt)return;
         var n=countWords(hookEl.value);
@@ -1469,10 +1488,56 @@
         copyCt.textContent=n+'/125 characters';
         copyCt.classList.toggle('over',n>125);
       }
-      if(hookEl){hookEl.addEventListener('input',updateHookCounter);updateHookCounter();}
-      if(copyEl){copyEl.addEventListener('input',updateCopyCounter);updateCopyCounter();}
+      function collect(){
+        return {
+          hook:hookEl?hookEl.value:'',
+          copy_body:copyEl?copyEl.value:'',
+          cta:ctaEl?ctaEl.value:'',
+          visual_concept:visualEl?visualEl.value:'',
+          why_it_works:whyEl?whyEl.value:'',
+          note:noteEl?noteEl.value:'',
+          include_rationale:!!(toggle&&toggle.checked)
+        };
+      }
+      function scheduleSave(){if(saveTimer)clearTimeout(saveTimer);saveTimer=setTimeout(function(){saveBriefDraft(key,collect());},350);}
+      function applyDraft(d){
+        if(!d)return;
+        if(hookEl&&'hook' in d)hookEl.value=d.hook||'';
+        if(copyEl&&'copy_body' in d)copyEl.value=d.copy_body||'';
+        if(ctaEl&&'cta' in d)ctaEl.value=d.cta||'';
+        if(visualEl&&'visual_concept' in d)visualEl.value=d.visual_concept||'';
+        if(whyEl&&'why_it_works' in d)whyEl.value=d.why_it_works||'';
+        if(noteEl&&'note' in d)noteEl.value=d.note||'';
+        if(toggle)toggle.checked=!!d.include_rationale;
+        if(whyWrap&&toggle)whyWrap.classList.toggle('hidden',!toggle.checked);
+      }
+      function restoreDefaults(){
+        if(hookEl)hookEl.value=(b&&b.hook)||'';
+        if(copyEl)copyEl.value=(b&&b.copy_body)||'';
+        if(ctaEl)ctaEl.value=(b&&b.cta)||'';
+        if(visualEl)visualEl.value=(b&&b.visual_concept)||'';
+        if(whyEl)whyEl.value=(b&&b.why_it_works)||'';
+        if(noteEl)noteEl.value='';
+        if(toggle)toggle.checked=false;
+        if(whyWrap)whyWrap.classList.add('hidden');
+        updateHookCounter();updateCopyCounter();
+      }
+      applyDraft(loadBriefDraft(key));
+      if(hookEl){hookEl.addEventListener('input',function(){updateHookCounter();scheduleSave();});updateHookCounter();}
+      if(copyEl){copyEl.addEventListener('input',function(){updateCopyCounter();scheduleSave();});updateCopyCounter();}
+      if(ctaEl)ctaEl.addEventListener('input',scheduleSave);
+      if(visualEl)visualEl.addEventListener('input',scheduleSave);
+      if(whyEl)whyEl.addEventListener('input',scheduleSave);
+      if(noteEl)noteEl.addEventListener('input',scheduleSave);
       if(toggle&&whyWrap){
-        toggle.addEventListener('change',function(){whyWrap.classList.toggle('hidden',!toggle.checked);});
+        toggle.addEventListener('change',function(){whyWrap.classList.toggle('hidden',!toggle.checked);scheduleSave();});
+      }
+      if(resetBtn){
+        resetBtn.addEventListener('click',function(){
+          if(!confirm('Reset all fields to the original brief? Any edits will be lost.'))return;
+          clearBriefDraft(key);
+          restoreDefaults();
+        });
       }
     }
 
