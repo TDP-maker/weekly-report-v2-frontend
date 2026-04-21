@@ -354,6 +354,9 @@
     .brief-v2-btn.ghost { background: transparent; color: rgba(255, 255, 255, 0.92); border: 1px solid rgba(255, 255, 255, 0.25); }
     .brief-v2-btn.ghost:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.45); }
     @media(max-width:760px) { .brief-v2 { padding: 40px 28px 32px; } .brief-v2-grid { grid-template-columns: 1fr; gap: 26px; } .brief-v2-actions { flex-direction: column; } .brief-v2-btn { width: 100%; } .brief-v2-hook { margin-bottom: 32px; } }
+    #briefActiveWrap { transition: opacity 150ms ease, transform 150ms ease; will-change: opacity, transform; }
+    #briefActiveWrap.is-fading { opacity: 0; transform: translateY(6px); }
+    @media(prefers-reduced-motion: reduce) { #briefActiveWrap { transition: none; } #briefActiveWrap.is-fading { opacity: 1; transform: none; } }
 
     .brief-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md); }
     .brief-hdr { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%); padding: 22px 24px; display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden; }
@@ -1331,7 +1334,19 @@
     }
 
     function switchBrief(idx){
-      try{var raw=document.getElementById('briefData');if(!raw)return;var briefs=JSON.parse(raw.textContent);var wrap=document.getElementById('briefActiveWrap');if(!wrap||!briefs[idx])return;wrap.innerHTML=renderBriefFull(briefs[idx],idx,briefs.length);document.querySelectorAll('.brief-side-card').forEach(function(btn,i){btn.style.opacity=i===(idx-1)?'1':'0.7';btn.style.boxShadow=i===(idx-1)?'0 0 0 2px var(--coral), 0 10px 32px rgba(55,71,93,0.22)':'';});}catch(e){console.warn('switchBrief err',e);}
+      try{
+        var raw=document.getElementById('briefData');if(!raw)return;
+        var briefs=JSON.parse(raw.textContent);
+        var wrap=document.getElementById('briefActiveWrap');
+        if(!wrap||!briefs[idx])return;
+        document.querySelectorAll('.brief-side-card').forEach(function(btn,i){btn.style.opacity=i===(idx-1)?'1':'0.7';btn.style.boxShadow=i===(idx-1)?'0 0 0 2px var(--coral), 0 10px 32px rgba(55,71,93,0.22)':'';});
+        wrap.classList.add('is-fading');
+        setTimeout(function(){
+          wrap.innerHTML=renderBriefFull(briefs[idx],idx,briefs.length);
+          void wrap.offsetWidth;
+          wrap.classList.remove('is-fading');
+        },160);
+      }catch(e){console.warn('switchBrief err',e);}
     }
 
     function toggleBriefBar(){}
