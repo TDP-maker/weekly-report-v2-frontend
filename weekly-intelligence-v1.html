@@ -1300,19 +1300,34 @@
     }
 
     function renderBriefFull(b,idx,total){
-      var h='<div class="brief-card"><div class="brief-hdr"><div class="brief-num">'+(idx+1)+'</div><div><div class="brief-concept">'+esc(b.concept_name||'Brief '+(idx+1))+'</div>';
-      if(b.subheadline)h+='<div class="brief-sub">'+esc(b.subheadline)+'</div>';
-      h+='</div></div><div class="brief-body"><div class="brief-full-grid"><div>';
-      if(b.hook)h+='<div class="brief-sec"><div class="brief-lbl">Hook</div><div class="brief-hook-text">"'+esc(b.hook)+'"</div></div>';
-      if(b.copy_body)h+='<div class="brief-sec"><div class="brief-lbl">Ad copy</div><div class="brief-copy-text">'+esc(b.copy_body)+'</div></div>';
-      if(b.cta)h+='<div class="brief-sec"><div class="brief-lbl">Call to action</div><div class="brief-cta-pill">'+esc(b.cta)+'</div></div>';
-      h+='</div><div>';
-      if(b.visual_concept)h+='<div class="brief-sec"><div class="brief-lbl">Visual concept</div><div class="brief-visual-box">'+esc(b.visual_concept)+'</div></div>';
-      if(b.why_it_works)h+='<div class="brief-sec"><div class="brief-why"><div class="brief-lbl">Why this will work</div><div class="brief-why-text">'+esc(b.why_it_works)+'</div></div></div>';
-      h+='</div></div>';
-      h+='<div class="brief-actions"><a href="/creative-generator" class="brief-btn primary">Generate Creative</a><a class="brief-btn secondary">Send to Designer</a></div>';
-      h+='</div></div>';
+      if(!b)return '';
+      var h='<div class="brief-v2">';
+      h+='<div class="brief-v2-concept">'+esc(b.concept_name||'Brief '+(idx+1))+'</div>';
+      if(b.subheadline)h+='<div class="brief-v2-sub">'+esc(b.subheadline)+'</div>';
+      if(b.hook)h+='<h2 class="brief-v2-hook">'+esc(b.hook)+'</h2>';
+      var hasL=!!(b.copy_body||b.cta), hasR=!!(b.visual_concept||b.why_it_works);
+      if(hasL||hasR){
+        h+='<div class="brief-v2-grid">';
+        h+='<div class="brief-v2-col">';
+        if(b.copy_body)h+='<div class="brief-v2-block"><span class="brief-v2-lbl">Ad copy</span><div class="brief-v2-copy">'+esc(b.copy_body)+'</div></div>';
+        if(b.cta)h+='<div class="brief-v2-block"><span class="brief-v2-lbl">Call to action</span><div><span class="brief-v2-cta-pill">'+esc(b.cta)+'</span></div></div>';
+        h+='</div>';
+        h+='<div class="brief-v2-col">';
+        if(b.visual_concept)h+='<div class="brief-v2-block"><span class="brief-v2-lbl">Visual concept</span><div class="brief-v2-visual">'+esc(b.visual_concept)+'</div></div>';
+        if(b.why_it_works)h+='<div class="brief-v2-block"><span class="brief-v2-lbl">Why it works</span><div class="brief-v2-why">'+esc(b.why_it_works)+'</div></div>';
+        h+='</div>';
+        h+='</div>';
+      }
+      h+='<div class="brief-v2-actions">';
+      h+='<a href="/creative-generator" class="brief-v2-btn primary">Generate Creative</a>';
+      h+='<button type="button" class="brief-v2-btn ghost" onclick="openSendToDesignerModal('+idx+')">Send to Designer</button>';
+      h+='</div>';
+      h+='</div>';
       return h;
+    }
+
+    function openSendToDesignerModal(briefIdx){
+      console.log('[SendToDesigner] stub — modal for brief index',briefIdx,'(chunk 16)');
     }
 
     function switchBrief(idx){
