@@ -1394,6 +1394,7 @@
         root.setAttribute('role','dialog');
         root.setAttribute('aria-modal','true');
         root.setAttribute('aria-labelledby','sendToDesignerTitle');
+        root.setAttribute('data-brief-idx',String(briefIdx));
         root.innerHTML=renderSendToDesignerModal(b,briefIdx);
         document.body.appendChild(root);
         document.body.style.overflow='hidden';
@@ -1466,10 +1467,88 @@
       return h;
     }
 
+    function buildBriefText(briefIdx){
+      var root=document.getElementById('sendToDesignerModal');
+      var val=function(sel){var el=root&&root.querySelector(sel);return el?(el.value||''):'';};
+      var conceptName='';
+      try{
+        var bd=document.getElementById('briefData');
+        if(bd){var briefs=JSON.parse(bd.textContent);if(briefs&&briefs[briefIdx])conceptName=briefs[briefIdx].concept_name||'';}
+      }catch(e){}
+      var hook=val('#std-hook').trim();
+      var copy=val('#std-copy').trim();
+      var cta=val('#std-cta').trim();
+      var visual=val('#std-visual').trim();
+      var why=val('#std-why').trim();
+      var note=val('#std-note').trim();
+      var toggle=root&&root.querySelector('#std-rationale-toggle');
+      var includeRationale=!!(toggle&&toggle.checked);
+      var company='Your Company';
+      if(state.accounts&&state.account){
+        var rec=state.accounts.find(function(a){return a.fields.ad_account_id===state.account;});
+        if(rec)company=rec.fields.ad_account_name||rec.fields.company_name||'Your Company';
+      }
+      var lines=[];
+      lines.push('Creative brief: '+(conceptName||'Brief'));
+      lines.push('');
+      if(note){lines.push(note);lines.push('');}
+      if(hook){lines.push('HOOK');lines.push(hook);lines.push('');}
+      if(copy){lines.push('AD COPY');lines.push(copy);lines.push('');}
+      if(cta){lines.push('CTA');lines.push(cta);lines.push('');}
+      if(visual){lines.push('VISUAL CONCEPT');lines.push(visual);lines.push('');}
+      if(includeRationale&&why){lines.push('WHY IT WORKS');lines.push(why);lines.push('');}
+      lines.push(company+' · via The Peach System');
+      return {text:lines.join('\n'),conceptName:conceptName||'Brief'};
+    }
+
     function onSendAction(e){
-      var btn=e.currentTarget||e.target;
-      var action=btn&&btn.getAttribute('data-action');
-      console.log('Send to Designer action:',action);
+      var btn=e.currentTarget;
+      if(!btn||!btn.getAttribute)return;
+      var action=btn.getAttribute('data-action');
+      var root=document.getElementById('sendToDesignerModal');
+      var briefIdx=root?parseInt(root.getAttribute('data-brief-idx'),10):0;
+      if(isNaN(briefIdx))briefIdx=0;
+      var out=buildBriefText(briefIdx);
+      var text=out.text;
+      var subject='Creative brief: '+out.conceptName;
+      if(action==='copy'){
+        handleCopyAction(btn,text);
+      }else if(action==='whatsapp'){
+        window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+        clearBriefDraft(briefDraftKey(briefIdx));
+        closeSendToDesignerModal();
+      }else if(action==='email'){
+        window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(text);
+        clearBriefDraft(briefDraftKey(briefIdx));
+        closeSendToDesignerModal();
+      }
+    }
+
+    function handleCopyAction(btn,text){
+      var label=btn.querySelector('span');
+      var original=label?label.textContent:'';
+      function flash(ok){
+        if(!label)return;
+        label.textContent=ok?'Copied!':"Couldn't copy";
+        setTimeout(function(){if(label)label.textContent=original;},2000);
+      }
+      function fallback(){
+        try{
+          var ta=document.createElement('textarea');
+          ta.value=text;
+          ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';
+          document.body.appendChild(ta);
+          ta.focus();ta.select();
+          var ok=document.execCommand('copy');
+          document.body.removeChild(ta);
+          flash(ok);
+        }catch(err){flash(false);}
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){flash(true);},fallback);
+      }else{
+        fallback();
+      }
     }
 
     function briefDraftKey(briefIdx){return 'peach-brief-draft-'+(state.week||'unknown')+'-'+briefIdx;}
