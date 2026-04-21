@@ -294,26 +294,35 @@
     .cs-val { font-size: 13px; font-weight: 700; color: var(--navy); }
     .cs-val.coral { color: var(--coral); }
     .cr-fatigue-tag { font-size: 8px; font-weight: 700; color: var(--amber); background: var(--amber-soft); padding: 2px 7px; border-radius: 20px; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; }
-    .issues-list { display: flex; flex-direction: column; gap: 10px; }
-    .issue-card { border-radius: var(--radius-md); padding: 18px 20px; border: 1px solid transparent; box-shadow: var(--shadow-sm); transition: all 0.2s; }
+    .issues-list { display: flex; flex-direction: column; gap: 12px; }
+    .issue-card { position: relative; border-radius: var(--radius-md); padding: 24px 26px; border: 1px solid transparent; box-shadow: var(--shadow-sm); transition: background 0.2s, box-shadow 0.2s, transform 0.2s; cursor: pointer; }
     .issue-card:hover { box-shadow: var(--shadow-md); transform: translateX(2px); }
+    .issue-card:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
     .issue-card.sev-High { background: rgba(224, 82, 82, 0.06); border-color: rgba(224, 82, 82, 0.16); border-left: 3px solid var(--red); }
     .issue-card.sev-Medium { background: rgba(212, 146, 42, 0.06); border-color: rgba(212, 146, 42, 0.16); border-left: 3px solid var(--amber); }
     .issue-card.sev-Low { background: rgba(5, 150, 105, 0.06); border-color: rgba(5, 150, 105, 0.16); border-left: 3px solid var(--green); }
-    .issue-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-    .sev-pill { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 20px; }
+    .issue-card.is-expanded { background: rgba(255, 107, 107, 0.04); }
+    .issue-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .sev-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 10px; border-radius: 20px; }
     .sev-pill.High { background: var(--red-soft); color: var(--red); }
     .sev-pill.Medium { background: var(--amber-soft); color: var(--amber); }
     .sev-pill.Low { background: var(--green-soft); color: var(--green); }
-    .issue-type { font-size: 13px; font-weight: 700; color: var(--navy); flex: 1; }
-    .pri-pill { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 3px 9px; border-radius: 20px; }
-    .pri-now { background: var(--coral-soft); color: var(--coral); }
+    .issue-type { font-size: 17px; font-weight: 600; color: var(--navy); flex: 1; letter-spacing: -0.005em; }
+    .pri-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 5px 11px; border-radius: 20px; }
+    .pri-now { background: #ff6b6b; color: #fff; box-shadow: 0 2px 8px rgba(255, 107, 107, 0.28); }
     .pri-week { background: var(--amber-soft); color: var(--amber); }
-    .pri-mon { background: rgba(0, 0, 0, 0.05); color: var(--text-muted); }
-    .issue-action { font-size: 13px; color: var(--text); line-height: 1.65; margin-bottom: 8px; }
-    .issue-footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .issue-owner { font-size: 10px; font-weight: 600; color: var(--text-muted); }
-    .issue-metric { font-size: 10px; font-weight: 700; color: var(--coral); background: var(--coral-soft); border-radius: 6px; padding: 2px 8px; }
+    .pri-mon { background: var(--navy-08); color: var(--navy-70); }
+    .issue-action { font-size: 15px; color: var(--text); line-height: 1.7; margin-bottom: 14px; }
+    .issue-footer { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .issue-owner { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .issue-metric { font-size: 11px; font-weight: 700; color: var(--coral); background: var(--coral-soft); border-radius: 6px; padding: 3px 10px; }
+    .issue-expand { max-height: 0; overflow: hidden; transition: max-height 0.28s ease, margin-top 0.28s ease, padding-top 0.28s ease, border-top-color 0.28s ease; border-top: 1px solid transparent; }
+    .issue-card.is-expanded .issue-expand { max-height: 600px; margin-top: 16px; padding-top: 16px; border-top-color: var(--navy-08); }
+    .issue-expand-item { margin-bottom: 12px; }
+    .issue-expand-item:last-child { margin-bottom: 0; }
+    .issue-expand-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #ff6b6b; margin-bottom: 6px; }
+    .issue-expand-body { font-size: 14px; color: var(--text); line-height: 1.65; }
+    .issue-expand-empty { font-size: 13px; color: var(--navy-50); font-style: italic; }
     .analysis-wrap { background: var(--white); border: 1px solid var(--navy-08); border-radius: var(--radius-xl); padding: 32px 36px; font-size: 15px; line-height: 1.85; color: var(--navy); }
     .analysis-wrap p { margin-bottom: 16px; }
     .analysis-wrap p:last-child { margin-bottom: 0; }
@@ -760,11 +769,14 @@
         sorted.forEach(iss=>{
           var sev=iss.severity||'',pri=(iss.priority||'').toLowerCase();
           var pc=pri.includes('now')?'pri-now':pri.includes('week')?'pri-week':'pri-mon';
-          h+='<div class="issue-card sev-'+sev+'"><div class="issue-top"><span class="sev-pill '+sev+'">'+sev+'</span><span class="issue-type">'+esc(iss.issue_type||iss.issue_category||'Analysis')+'</span>';
+          h+='<div class="issue-card sev-'+sev+'" role="button" tabindex="0" aria-expanded="false" onclick="toggleIssueCard(this)" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleIssueCard(this);}">';
+          h+='<div class="issue-top"><span class="sev-pill '+sev+'">'+sev+'</span><span class="issue-type">'+esc(iss.issue_type||iss.issue_category||'Analysis')+'</span>';
           if(iss.priority)h+='<span class="pri-pill '+pc+'">'+esc(iss.priority)+'</span>';
           h+='</div>';if(iss.action_detail)h+='<div class="issue-action">'+esc(iss.action_detail)+'</div>';
           h+='<div class="issue-footer">';if(iss.owner)h+='<span class="issue-owner">→ '+esc(iss.owner)+'</span>';if(iss.primary_metric_name&&iss.primary_metric_value!=null)h+='<span class="issue-metric">'+esc(iss.primary_metric_name)+': '+esc(String(iss.primary_metric_value))+'</span>';if(iss.success_target)h+='<span class="issue-owner">Target: '+esc(iss.success_target)+'</span>';
-          h+='</div></div>';
+          h+='</div>';
+          h+=renderIssueExpand(iss);
+          h+='</div>';
         });
         h+='</div>';
       }
@@ -1307,6 +1319,33 @@
       if(!card)return;
       var expanded=card.classList.toggle('is-expanded');
       card.setAttribute('aria-expanded',expanded?'true':'false');
+    }
+
+    function toggleIssueCard(card){
+      if(!card)return;
+      var expanded=card.classList.toggle('is-expanded');
+      card.setAttribute('aria-expanded',expanded?'true':'false');
+    }
+
+    function renderIssueExpand(iss){
+      var parts=[];
+      if(iss.reasoning)parts.push({label:'Reasoning',body:esc(iss.reasoning)});
+      if(iss.related_metrics){
+        var rm=iss.related_metrics;
+        var rmBody='';
+        if(Array.isArray(rm))rmBody=rm.map(function(m){return esc(String(m));}).join(' &middot; ');
+        else if(typeof rm==='object')rmBody=Object.keys(rm).map(function(k){return esc(k)+': '+esc(String(rm[k]));}).join(' &middot; ');
+        else rmBody=esc(String(rm));
+        if(rmBody)parts.push({label:'Related metrics',body:rmBody});
+      }
+      if(iss.context_notes)parts.push({label:'Context',body:esc(iss.context_notes)});
+      var inner='';
+      if(parts.length){
+        parts.forEach(function(p){inner+='<div class="issue-expand-item"><div class="issue-expand-lbl">'+p.label+'</div><div class="issue-expand-body">'+p.body+'</div></div>';});
+      }else{
+        inner='<div class="issue-expand-empty">No additional detail.</div>';
+      }
+      return '<div class="issue-expand">'+inner+'</div>';
     }
 
     function renderSparkline(trend,isNotable){
