@@ -653,7 +653,7 @@
         h+='</div>';
       }
 
-      h+=renderPatternObservationsSection(intel,'Patterns we\'re tracking');
+      h+=renderPatternObservationsSection(intel&&intel.pattern_observations,'Patterns we\'re tracking','Your pattern observations will appear as your account history builds. First patterns typically emerge at 10+ ads with 4+ weeks of spend.');
       h+=renderForwardPreparationSection(intel);
 
       if(intel&&intel.account_phase_note&&metrics&&metrics.wh>0){
@@ -699,6 +699,8 @@
         h+='<div class="sec-label"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>Creative analysis</div>';
         h+='<div class="analysis-wrap">'+formatCreativeAnalysis(intel.creative.creative_analysis)+'</div>';
       }
+
+      h+=renderPatternObservationsSection(intel&&intel.creative&&intel.creative.pattern_observations,'Patterns in your creatives',null);
 
       var briefs=[];
       if(intel&&intel.creative){['brief_1','brief_2','brief_3'].forEach(k=>{var b=intel.creative[k];if(b&&b.hook)briefs.push(b);});}
@@ -1018,13 +1020,14 @@
       s+='</svg>';return s;
     }
 
-    function renderPatternObservationsSection(intel,label){
-      if(!intel)return '';
-      var list=parsePatternObservations(intel.pattern_observations);
+    function renderPatternObservationsSection(raw,label,emptyCopy){
+      var list=parsePatternObservations(raw);
+      var hasList=list&&list.length>0;
+      if(!hasList&&!emptyCopy)return '';
       var h='<section class="patterns-section">';
       h+='<div class="sec-label t-section-label">'+esc(label||'Patterns we\'re tracking')+'</div>';
-      if(!list||list.length===0){
-        h+='<div class="patterns-empty">Your pattern observations will appear as your account history builds. First patterns typically emerge at 10+ ads with 4+ weeks of spend.</div>';
+      if(!hasList){
+        h+='<div class="patterns-empty">'+esc(emptyCopy)+'</div>';
         h+='</section>';
         return h;
       }
