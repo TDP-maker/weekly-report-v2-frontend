@@ -360,6 +360,19 @@
     .modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 18px 32px 24px; border-top: 1px solid var(--navy-08); background: var(--white); flex-wrap: wrap; }
     @media(prefers-reduced-motion: reduce) { .modal-root { transition: none; } .modal-dialog { transition: none; transform: none; } }
     @media(max-width: 560px) { .modal-root { padding: 0; align-items: flex-end; } .modal-dialog { max-height: 90vh; border-radius: var(--radius-xl) var(--radius-xl) 0 0; } .modal-head { padding: 22px 22px 16px; } .modal-body { padding: 20px 22px; } .modal-actions { padding: 16px 22px 22px; } }
+    .std-field { margin-bottom: 22px; }
+    .std-field:last-child { margin-bottom: 0; }
+    .std-field.hidden { display: none; }
+    .std-label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #ff6b6b; margin-bottom: 8px; }
+    .std-label-optional { font-weight: 500; text-transform: none; letter-spacing: 0.01em; color: var(--navy-50); font-size: 11px; margin-left: 4px; }
+    .std-input, .std-textarea { width: 100%; font-family: inherit; font-size: 15px; color: var(--navy); background: var(--white); border: 1px solid var(--navy-12); border-radius: 10px; padding: 12px 14px; line-height: 1.5; transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none; appearance: none; }
+    .std-input:focus, .std-textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(55, 71, 93, 0.08); }
+    .std-textarea { resize: vertical; min-height: 72px; line-height: 1.55; }
+    .std-counter { display: flex; justify-content: flex-end; margin-top: 6px; font-size: 11px; font-weight: 600; color: var(--navy-50); letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+    .std-counter.over { color: #ff6b6b; }
+    .std-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 13px; color: var(--navy); font-weight: 500; }
+    .std-toggle input { width: 16px; height: 16px; accent-color: #ff6b6b; cursor: pointer; margin: 0; }
+    .std-toggle-hint { font-size: 11px; color: var(--navy-50); margin-top: 6px; margin-bottom: 14px; line-height: 1.55; }
 
     .brief-only-note { background: var(--cream-light); border: 2px dashed var(--warm-gray); border-radius: var(--radius-xl); padding: 32px 20px; text-align: center; }
     /* ── v2 active brief ──────────────────────────────────────────── */
@@ -1381,6 +1394,7 @@
         document.addEventListener('keydown',modalKeyHandler);
         requestAnimationFrame(function(){
           root.classList.add('is-open');
+          wireSendToDesignerModal(root);
           var dlg=root.querySelector('.modal-dialog');
           if(dlg)dlg.focus();
         });
@@ -1410,10 +1424,56 @@
       h+='</div><button class="modal-close" type="button" data-modal-close aria-label="Close">';
       h+='<svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
       h+='</button></header>';
-      h+='<div class="modal-body"></div>';
+      h+='<div class="modal-body">';
+      h+='<div class="std-field"><label class="std-label" for="std-hook">Hook</label>';
+      h+='<input type="text" id="std-hook" class="std-input" value="'+esc(b.hook||'')+'" />';
+      h+='<div class="std-counter" id="std-hook-counter">0/10 words</div></div>';
+      h+='<div class="std-field"><label class="std-label" for="std-copy">Ad copy</label>';
+      h+='<textarea id="std-copy" class="std-textarea" rows="4">'+esc(b.copy_body||'')+'</textarea>';
+      h+='<div class="std-counter" id="std-copy-counter">0/125 characters</div></div>';
+      h+='<div class="std-field"><label class="std-label" for="std-cta">Call to action</label>';
+      h+='<input type="text" id="std-cta" class="std-input" value="'+esc(b.cta||'')+'" /></div>';
+      h+='<div class="std-field"><label class="std-label" for="std-visual">Visual concept</label>';
+      h+='<textarea id="std-visual" class="std-textarea" rows="3">'+esc(b.visual_concept||'')+'</textarea></div>';
+      h+='<div class="std-field"><label class="std-toggle"><input type="checkbox" id="std-rationale-toggle" />';
+      h+='<span>Include rationale for designer</span></label>';
+      h+='<div class="std-toggle-hint">Share why this concept works — useful for senior designers, optional for production briefs.</div></div>';
+      h+='<div class="std-field hidden" id="std-why-wrap"><label class="std-label" for="std-why">Why it works</label>';
+      h+='<textarea id="std-why" class="std-textarea" rows="4">'+esc(b.why_it_works||'')+'</textarea></div>';
+      h+='<div class="std-field"><label class="std-label" for="std-note">Note for designer<span class="std-label-optional">optional</span></label>';
+      h+='<textarea id="std-note" class="std-textarea" rows="3" placeholder="&ldquo;Keep it clean, one subject, no text overlay &middot; mirror the tone of brief 1 &middot; avoid stock-photo vibe&rdquo;"></textarea></div>';
+      h+='</div>';
       h+='<footer class="modal-actions"></footer>';
       h+='</div>';
       return h;
+    }
+
+    function wireSendToDesignerModal(root){
+      if(!root)return;
+      function countWords(s){s=(s||'').trim();if(!s)return 0;return s.split(/\s+/).length;}
+      var hookEl=root.querySelector('#std-hook');
+      var hookCt=root.querySelector('#std-hook-counter');
+      var copyEl=root.querySelector('#std-copy');
+      var copyCt=root.querySelector('#std-copy-counter');
+      var toggle=root.querySelector('#std-rationale-toggle');
+      var whyWrap=root.querySelector('#std-why-wrap');
+      function updateHookCounter(){
+        if(!hookEl||!hookCt)return;
+        var n=countWords(hookEl.value);
+        hookCt.textContent=n+'/10 words';
+        hookCt.classList.toggle('over',n>10);
+      }
+      function updateCopyCounter(){
+        if(!copyEl||!copyCt)return;
+        var n=(copyEl.value||'').length;
+        copyCt.textContent=n+'/125 characters';
+        copyCt.classList.toggle('over',n>125);
+      }
+      if(hookEl){hookEl.addEventListener('input',updateHookCounter);updateHookCounter();}
+      if(copyEl){copyEl.addEventListener('input',updateCopyCounter);updateCopyCounter();}
+      if(toggle&&whyWrap){
+        toggle.addEventListener('change',function(){whyWrap.classList.toggle('hidden',!toggle.checked);});
+      }
     }
 
     function switchBrief(idx){
