@@ -333,6 +333,28 @@
     .brief-sidebar { display: flex; flex-direction: column; gap: 12px; }
     .brief-sidebar-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--coral); margin-bottom: 4px; }
     .brief-only-note { background: var(--cream-light); border: 2px dashed var(--warm-gray); border-radius: var(--radius-xl); padding: 32px 20px; text-align: center; }
+    /* ── v2 active brief ──────────────────────────────────────────── */
+    .brief-v2 { position: relative; background: var(--navy); border-radius: var(--radius-xl); padding: 52px 48px 40px; overflow: hidden; color: #fff; box-shadow: 0 12px 36px rgba(55, 71, 93, 0.18); }
+    .brief-v2::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #ff6b6b; }
+    .brief-v2-concept { font-size: 14px; text-transform: uppercase; letter-spacing: 0.14em; font-weight: 700; color: #ff6b6b; margin-bottom: 18px; }
+    .brief-v2-sub { font-size: 13px; color: rgba(255, 255, 255, 0.55); margin-top: -10px; margin-bottom: 20px; letter-spacing: 0.01em; }
+    .brief-v2-hook { font-size: clamp(36px, 6vw, 64px); font-weight: 700; color: #fff; line-height: 1.15; letter-spacing: -0.025em; margin-bottom: 40px; max-width: 20ch; }
+    .brief-v2-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; margin-bottom: 32px; }
+    .brief-v2-col { min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+    .brief-v2-block { min-width: 0; }
+    .brief-v2-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #ff6b6b; margin-bottom: 10px; display: block; }
+    .brief-v2-copy { font-size: 15px; color: rgba(255, 255, 255, 0.92); line-height: 1.6; }
+    .brief-v2-cta-pill { display: inline-flex; align-items: center; background: #ff6b6b; color: #fff; font-size: 14px; font-weight: 700; padding: 10px 22px; border-radius: 999px; letter-spacing: 0.02em; }
+    .brief-v2-visual { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 18px 20px; font-size: 14px; line-height: 1.6; color: rgba(255, 255, 255, 0.9); }
+    .brief-v2-why { background: rgba(255, 107, 107, 0.08); border: 1px solid rgba(255, 107, 107, 0.15); border-radius: 12px; padding: 18px 20px; font-size: 13px; line-height: 1.65; color: rgba(255, 220, 220, 0.92); font-style: italic; letter-spacing: 0.005em; }
+    .brief-v2-actions { display: flex; gap: 12px; padding-top: 28px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    .brief-v2-btn { padding: 14px 26px; border-radius: 10px; font-size: 13px; font-weight: 700; font-family: inherit; text-align: center; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.2s, border-color 0.2s, transform 0.15s; letter-spacing: 0.04em; text-transform: uppercase; border: none; }
+    .brief-v2-btn.primary { background: #ff6b6b; color: #fff; }
+    .brief-v2-btn.primary:hover { background: #ff5454; transform: translateY(-1px); }
+    .brief-v2-btn.ghost { background: transparent; color: rgba(255, 255, 255, 0.92); border: 1px solid rgba(255, 255, 255, 0.25); }
+    .brief-v2-btn.ghost:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.45); }
+    @media(max-width:760px) { .brief-v2 { padding: 40px 28px 32px; } .brief-v2-grid { grid-template-columns: 1fr; gap: 26px; } .brief-v2-actions { flex-direction: column; } .brief-v2-btn { width: 100%; } .brief-v2-hook { margin-bottom: 32px; } }
+
     .brief-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md); }
     .brief-hdr { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%); padding: 22px 24px; display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden; }
     .brief-hdr::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--coral), transparent); }
